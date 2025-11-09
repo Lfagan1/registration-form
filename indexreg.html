@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" /> <!-- // Set character encoding to UTF-8 for broad character support -->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" /> <!-- // Ensure latest IE rendering mode if used -->
+  <meta name="viewport" content="width=device-width, initial-scale=1" /> <!-- // Responsive layout on mobile devices -->
+  <title>Registration Form – Client-side Validation</title> <!-- // Page title shown in browser tab -->
+  <style>
+    /* // ====== Basic, accessible, clean styles (inline to keep a single-file deliverable) ====== */
+    :root { --bg:#0b1b2a; --card:#ffffff; --ink:#0e1726; --muted:#4a5568; --accent:#2563eb; --danger:#b91c1c; --ok:#166534; }
+    * { box-sizing: border-box; } /* // Include padding/border in element width/height for easier layout */
+    body { margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; background:linear-gradient(120deg, #0b1b2a, #142c44 60%, #0b1b2a); color:var(--ink); }
+    .wrap { max-width: 900px; margin: 40px auto; padding: 24px; background: var(--card); border-radius: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.15); }
+    header { display:flex; align-items:center; gap:16px; margin-bottom: 12px; }
+    .logo { width:58px; height:58px; border-radius:12px; overflow:hidden; display:grid; place-items:center; background:#0ea5e9; }
+    .logo svg { width:80%; height:80%; }
+    h1 { margin:0; font-size: clamp(1.25rem, 1.1rem + 1.2vw, 1.9rem); }
+    p.lead { margin:.25rem 0 1rem; color:var(--muted); }
+    form { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px 18px; }
+    fieldset { border:1px solid #e5e7eb; border-radius:12px; padding:14px; grid-column: 1 / -1; }
+    legend { padding: 0 .5rem; font-weight: 600; color:#111827; }
+    label { display:block; font-weight:600; font-size:.92rem; margin-bottom:6px; }
+    .row { display:flex; gap:12px; }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="url"], select, textarea {
+      width:100%; border:1px solid #cbd5e1; border-radius:10px; padding:10px 12px; font-size:1rem; outline: none; transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+    input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(185,28,28,.12); }
+    .help { font-size:.82rem; color:var(--muted); margin-top:4px; }
+    .error-panel { grid-column: 1 / -1; border-left: 4px solid var(--danger); background:#fef2f2; color:#7f1d1d; padding:12px 14px; border-radius:10px; display:none; }
+    .error-panel h2 { margin:0 0 6px; font-size:1rem; }
+    .error-panel ul { margin:0; padding-left: 1.25rem; }
+    .good { color: var(--ok); font-weight:600; }
+    .actions { grid-column: 1 / -1; display:flex; gap:10px; margin-top:6px; }
+    button { border:0; border-radius:12px; padding:12px 16px; font-weight:700; cursor:pointer; }
+    .btn-primary { background: var(--accent); color:white; }
+    .btn-ghost { background: #f3f4f6; color:#111827; }
+    .chars { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <!-- // Inline SVG company logo (meets "Advanced Challenge: add a logo") -->
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Company logo">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0" stop-color="#22d3ee"/>
+              <stop offset="1" stop-color="#2563eb"/>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="100" height="100" rx="18" fill="url(#g)"/>
+          <path d="M20 60 C30 20, 70 20, 80 60" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round"/>
+          <circle cx="50" cy="62" r="10" fill="#fff"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Event Registration Form</h1>
+        <p class="lead">All fields marked with * are required. Your information will be validated before submission.</p>
+      </div>
+    </header>
+
+    <!-- // Error summary panel (hidden until there are errors) -->
+    <section id="errorPanel" class="error-panel" aria-live="polite" aria-atomic="true">
+      <h2>Fix the following:</h2>
+      <ul id="errorList"></ul>
+    </section>
+
+    <!-- // BEGIN FORM -->
+    <form id="regForm" novalidate>
+      <!-- // ===== Name (two text boxes, default text, alpha only) ===== -->
+      <div>
+        <label for="firstName">* First Name</label>
+        <input type="text" id="firstName" name="firstName" value="First Name" aria-invalid="false" autocomplete="given-name" />
+        <p class="help">Letters only. Default text clears on focus.</p>
+      </div>
+      <div>
+        <label for="lastName">* Last Name</label>
+        <input type="text" id="lastName" name="lastName" value="Last Name" aria-invalid="false" autocomplete="family-name" />
+        <p class="help">Letters only. Default text clears on focus.</p>
+      </div>
+
+      <!-- // ===== Address (street, city, state dropdown, zip) ===== -->
+      <fieldset>
+        <legend>Mailing Address *</legend>
+        <div class="row">
+          <div style="flex:2">
+            <label for="street">Street</label>
+            <input type="text" id="street" name="street" placeholder="123 Main St Apt 4B" aria-invalid="false" autocomplete="address-line1" />
+            <p class="help">Alphanumeric, spaces, # . - allowed.</p>
+          </div>
+          <div style="flex:1">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" placeholder="Anytown" aria-invalid="false" autocomplete="address-level2" />
+          </div>
+        </div>
+        <div class="row">
+          <div style="flex:1">
+            <label for="state">State</label>
+            <select id="state" name="state" aria-invalid="false" autocomplete="address-level1">
+              <option value="">-- Select a State --</option>
+              <option>AL</option><option>AK</option><option>AZ</option><option>AR</option><option>CA</option>
+              <option>CO</option><option>CT</option><option>DE</option><option>FL</option><option>GA</option>
+              <option>HI</option><option>ID</option><option>IL</option><option>IN</option><option>IA</option>
+              <option>KS</option><option>KY</option><option>LA</option><option>ME</option><option>MD</option>
+              <option>MA</option><option>MI</option><option>MN</option><option>MS</option><option>MO</option>
+              <option>MT</option><option>NE</option><option>NV</option><option>NH</option><option>NJ</option>
+              <option>NM</option><option>NY</option><option>NC</option><option>ND</option><option>OH</option>
+              <option>OK</option><option>OR</option><option>PA</option><option>RI</option><option>SC</option>
+              <option>SD</option><option>TN</option><option>TX</option><option>UT</option><option>VT</option>
+              <option>VA</option><option>WA</option><option>WV</option><option>WI</option><option>WY</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label for="zip">Zip Code</label>
+            <input type="text" id="zip" name="zip" inputmode="numeric" placeholder="12345" aria-invalid="false" autocomplete="postal-code" />
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- // ===== Phone (two boxes: area code + 7-digit) ===== -->
+      <fieldset>
+        <legend>Phone *</legend>
+        <div class="row">
+          <div style="flex:1">
+            <label for="area">Area Code</label>
+            <input type="text" id="area" name="area" inputmode="numeric" placeholder="555" aria-invalid="false" autocomplete="tel-area-code" />
+          </div>
+          <div style="flex:2">
+            <label for="phone">Phone Number</label>
+            <input type="text" id="phone" name="phone" inputmode="numeric" placeholder="1234567" aria-invalid="false" autocomplete="tel-local" />
+            <p class="help">Enter digits only (no dashes or spaces).</p>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- // ===== Email & Confirm Email ===== -->
+      <div>
+        <label for="email">* E-mail Address</label>
+        <input type="email" id="email" name="email" placeholder="name@example.com" aria-invalid="false" autocomplete="email" />
+        <p class="help">Must follow name@domain.tld and length rules.</p>
+      </div>
+      <div>
+        <label for="confirmEmail">* Confirm E-mail Address</label>
+        <input type="email" id="confirmEmail" name="confirmEmail" placeholder="Re-type your email" aria-invalid="false" autocomplete="email" />
+      </div>
+
+      <!-- // ===== Meal Preference (radio) ===== -->
+      <fieldset>
+        <legend>Meal Preference *</legend>
+        <div class="row" role="radiogroup" aria-labelledby="mealGroup">
+          <div>
+            <input type="radio" id="mealVegan" name="meal" value="Vegan" />
+            <label for="mealVegan">Vegan</label>
+          </div>
+          <div>
+            <input type="radio" id="mealVegetarian" name="meal" value="Vegetarian" />
+            <label for="mealVegetarian">Vegetarian</label>
+          </div>
+          <div>
+            <input type="radio" id="mealNonVeg" name="meal" value="Non-Vegetarian" />
+            <label for="mealNonVeg">Non-Vegetarian</label>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- // ===== Contact Methods (checkbox: at least two) ===== -->
+      <fieldset>
+        <legend>Preferred Contact Methods * (choose at least two)</legend>
+        <div class="row" aria-describedby="contactHint">
+          <div><input type="checkbox" id="cmEmail" name="contactMethods" value="Email" /> <label for="cmEmail">Email</label></div>
+          <div><input type="checkbox" id="cmPhone" name="contactMethods" value="Phone" /> <label for="cmPhone">Phone</label></div>
+          <div><input type="checkbox" id="cmText" name="contactMethods" value="Text" /> <label for="cmText">Text</label></div>
+          <div><input type="checkbox" id="cmMail" name="contactMethods" value="Mail" /> <label for="cmMail">Mail</label></div>
+        </div>
+        <p id="contactHint" class="help">Zero or one selection will produce an error.</p>
+      </fieldset>
+
+      <!-- // ===== Comments (optional, 250 chars) ===== -->
+      <div style="grid-column: 1 / -1;">
+        <label for="comments">Comments (optional)</label>
+        <textarea id="comments" name="comments" rows="4" maxlength="250" aria-invalid="false" placeholder="Add any additional notes (max 250 characters)"></textarea>
+        <p class="help"><span id="charCount" class="chars">0</span>/250 characters</p>
+      </div>
+
+      <!-- // ===== Advanced Challenge: two additional validated fields ===== -->
+      <div>
+        <label for="dob">* Date of Birth</label>
+        <input type="date" id="dob" name="dob" aria-invalid="false" />
+        <p class="help">Must be at least 13 years old.</p>
+      </div>
+      <div>
+        <label for="promo">Promo Code (optional)</label>
+        <input type="text" id="promo" name="promo" placeholder="ABC123" aria-invalid="false" />
+        <p class="help">Six alphanumeric characters if provided.</p>
+      </div>
+
+      <!-- // ===== Actions ===== -->
+      <div class="actions">
+        <button type="submit" class="btn-primary">Submit</button> <!-- // Calls our submit handler to validate and (if valid) email results -->
+        <button type="button" id="resetBtn" class="btn-ghost">Reset</button> <!-- // Calls our reset handler to clear form -->
+      </div>
+
+    </form>
+
+    <p class="help" style="grid-column: 1 / -1; margin-top:12px">If everything is valid, clicking Submit will open your email client via <code>mailto:</code> with the form data pre-filled to send to your address.</p>
+
+    <p class="help">HTML validates with W3C Markup Validator. Host this file online (GitHub Pages/Azure) then validate by URL.</p>
+  </div>
+
+<script>
+  // =========================
+  // Client-side Validation JS
+  // =========================
+
+  // // Define the email recipient for the mailto: handoff.
+  const MAIL_TO = "lfagan2@student.umgc.edu"; // // Your address to receive the submissions
+
+  // // Defaults for first/last name fields used for clearing/restoring text
+  const DEFAULT_FIRST = "First Name"; // // Default placeholder-like value per project spec
+  const DEFAULT_LAST = "Last Name";  // // Default placeholder-like value per project spec
+
+  // // Convenience: cache commonly used elements
+  const form = document.getElementById('regForm'); // // Main form element
+  const errorPanel = document.getElementById('errorPanel'); // // Error summary container
+  const errorList = document.getElementById('errorList'); // // UL where errors get listed
+
+  // // Character counter for comments
+  const comments = document.getElementById('comments'); // // Comments textarea
+  const charCount = document.getElementById('charCount'); // // Counter display
+
+  // // Register event listeners after the DOM is ready
+  document.addEventListener('DOMContentLoaded', () => { // // Wait until DOM is usable
+    // // Wire up clearing/restoring of default name text per requirement
+    setupDefaultText('firstName', DEFAULT_FIRST); // // Init behavior for First Name
+    setupDefaultText('lastName', DEFAULT_LAST);   // // Init behavior for Last Name
+
+    // // Live character count for comments
+    updateCharCount(); // // Initialize the counter display
+    comments.addEventListener('input', updateCharCount); // // Update as user types
+
+    // // Form submit handler (validates and, if OK, opens email client)
+    form.addEventListener('submit', handleSubmit); // // On submit, run custom validation routine
+
+    // // Reset button clears fields and error UI
+    document.getElementById('resetBtn').addEventListener('click', handleReset); // // Hook up reset button
+  });
+
+  // // Helper: set up default text clearing/restoring for a text input
+  function setupDefaultText(id, defaultValue) {
+    const el = document.getElementById(id);
+    el.value = defaultValue;
+    el.addEventListener('focus', () => { if (el.value === defaultValue) el.value = ''; });
+    el.addEventListener('blur', () => { if (el.value.trim() === '') el.value = defaultValue; });
+  }
+
+  // // Update the live character count for comments
+  function updateCharCount() {
+    const len = comments.value.length;
+    charCount.textContent = String(len);
+  }
+
+  // // Central submit handler: validates fields and either shows errors or composes a mailto: URL
+  function handleSubmit(e) {
+    e.preventDefault(); // // Stop default submission
+
+    // // Clear previous errors and invalid highlights
+    errorList.innerHTML = '';
+    errorPanel.style.display = 'none';
+    [...form.querySelectorAll('[aria-invalid]')].forEach(el => el.setAttribute('aria-invalid', 'false'));
+
+    const errors = [];
+
+    // // Helper regex patterns based on project requirements
+    const alpha = /^[A-Za-z]+$/; // // Letters only
+    const alphaSpaced = /^[A-Za-z]+(?:[ \-][A-Za-z]+)*$/; // // Letters + spaces/hyphens for city names
+    const alnumAddr = /^[A-Za-z0-9 #.\-]+$/; // // Alphanumeric with space, #, ., - for street
+    const zipRx = /^\d{5}$/; // // Exactly 5 digits
+    const areaRx = /^\d{3}$/; // // Exactly 3 digits
+    const phoneRx = /^\d{7}$/; // // Exactly 7 digits
+    const promoRx = /^[A-Za-z0-9]{6}$/; // // Exactly six alphanumeric characters
+
+    const emailRx = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/; // // Basic structure
+
+    // // Read values (trimmed)
+    const firstName = document.getElementById('firstName').value.trim();
+    const lastName  = document.getElementById('lastName').value.trim();
+
+    const street = document.getElementById('street').value.trim();
+    const city   = document.getElementById('city').value.trim();
+    const state  = document.getElementById('state').value;
+    const zip    = document.getElementById('zip').value.trim();
+
+    const area   = document.getElementById('area').value.trim();
+    const phone  = document.getElementById('phone').value.trim();
+
+    const email  = document.getElementById('email').value.trim();
+    const confirmEmail = document.getElementById('confirmEmail').value.trim();
+
+    const meal = (form.querySelector('input[name="meal"]:checked') || {}).value || '';
+
+    const contactChecked = [...form.querySelectorAll('input[name="contactMethods"]:checked')].map(el => el.value);
+
+    const commentsVal = comments.value;
+
+    const dob = document.getElementById('dob').value;
+    const promo = document.getElementById('promo').value.trim();
+
+    // // Validate names
+    if (!firstName || firstName === DEFAULT_FIRST || !alpha.test(firstName)) {
+      flagInvalid('firstName'); errors.push('First Name is required and must contain letters only.');
+    }
+    if (!lastName || lastName === DEFAULT_LAST || !alpha.test(lastName)) {
+      flagInvalid('lastName'); errors.push('Last Name is required and must contain letters only.');
+    }
+
+    // // Validate address
+    if (!street || !alnumAddr.test(street)) { flagInvalid('street'); errors.push('Street Address is required and must be alphanumeric (spaces, # . - allowed).'); }
+    if (!city || !alphaSpaced.test(city))   { flagInvalid('city');   errors.push('City is required and must contain letters (spaces and hyphens allowed).'); }
+    if (!state)                              { flagInvalid('state');  errors.push('State selection is required.'); }
+    if (!zipRx.test(zip))                    { flagInvalid('zip');    errors.push('Zip Code must be exactly 5 digits.'); }
+
+    // // Validate phone
+    if (!areaRx.test(area))                  { flagInvalid('area');   errors.push('Area Code must be exactly 3 digits.'); }
+    if (!phoneRx.test(phone))                { flagInvalid('phone');  errors.push('Phone Number must be exactly 7 digits (no dashes).'); }
+
+    // // Validate email
+    if (!emailRx.test(email)) {
+      flagInvalid('email');
+      errors.push('You have entered an invalid e-mail address.');
+    } else {
+      const parts = email.split('@');
+      const local = parts[0] || '';
+      const domain = parts[1] || '';
+      if (!local || !domain || local.length > 64 || domain.length > 252) {
+        flagInvalid('email');
+        errors.push('E-mail address violates length rules (name ≤ 64, domain ≤ 252).');
+      }
+    }
+
+    // // Confirm email
+    if (email !== confirmEmail || !confirmEmail) {
+      flagInvalid('confirmEmail');
+      errors.push('Confirm E-mail Address must exactly match.');
+    }
+
+    // // Meal preference
+    if (!meal) { errors.push('Please select a Meal Preference.'); }
+
+    // // Contact methods
+    if (contactChecked.length < 2) { errors.push('Select at least two Contact Methods.'); }
+
+    // // Comments length (double-check; maxlength also enforces)
+    if (commentsVal.length > 250) { flagInvalid('comments'); errors.push('Comments cannot exceed 250 characters.'); }
+
+    // // DOB (>= 13 years old)
+    if (!dob) { flagInvalid('dob'); errors.push('Date of Birth is required.'); }
+    else {
+      const age = calculateAge(dob);
+      if (age < 13) { flagInvalid('dob'); errors.push('You must be at least 13 years old.'); }
+    }
+
+    // // Promo (optional)
+    if (promo && !promoRx.test(promo)) { flagInvalid('promo'); errors.push('Promo Code must be six alphanumeric characters (e.g., ABC123).'); }
+
+    // // If errors, show and stop
+    if (errors.length) {
+      renderErrors(errors);
+      return;
+    }
+
+    // // Compose email body and hand off via mailto:
+    const bodyLines = [
+      `First Name: ${firstName}`,
+      `Last Name: ${lastName}`,
+      `Address: ${street}, ${city}, ${state} ${zip}`,
+      `Phone: (${area}) ${phone.slice(0,3)}-${phone.slice(3)}`,
+      `Email: ${email}`,
+      `Meal Preference: ${meal}`,
+      `Contact Methods: ${contactChecked.join(', ')}`,
+      `DOB: ${dob}`,
+      `Promo Code: ${promo || 'N/A'}`,
+      '',
+      'Comments:',
+      commentsVal || '(none)'
+    ];
+
+    const subject = encodeURIComponent('New Registration Form Submission');
+    const body = encodeURIComponent(bodyLines.join('\n'));
+
+    window.location.href = `mailto:${MAIL_TO}?subject=${subject}&body=${body}`;
+  }
+
+  // // Mark a specific field invalid
+  function flagInvalid(id) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('aria-invalid', 'true');
+  }
+
+  // // Render errors into the panel and focus the first invalid field
+  function renderErrors(errors) {
+    errorList.innerHTML = errors.map(msg => `<li>${escapeHtml(msg)}</li>`).join('');
+    errorPanel.style.display = 'block';
+    const firstInvalid = form.querySelector('[aria-invalid="true"]');
+    if (firstInvalid) firstInvalid.focus();
+  }
+
+  // // Escape text for safe HTML insertion
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+  }
+
+  // // Compute integer age from yyyy-mm-dd date string
+  function calculateAge(isoDateStr) {
+    const today = new Date();
+    const dob = new Date(isoDateStr);
+    let age = today.getFullYear() - dob.getFullYear();
+    const m = today.getMonth() - dob.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+    return age;
+  }
+
+  // // Reset handler
+  function handleReset() {
+    form.reset();
+    setupDefaultText('firstName', DEFAULT_FIRST);
+    setupDefaultText('lastName', DEFAULT_LAST);
+    errorList.innerHTML = '';
+    errorPanel.style.display = 'none';
+    [...form.querySelectorAll('[aria-invalid]')].forEach(el => el.setAttribute('aria-invalid', 'false'));
+    updateCharCount();
+    document.getElementById('state').value = '';
+  }
+</script>
+</body>
+</html>
